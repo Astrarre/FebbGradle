@@ -1,0 +1,61 @@
+plugins {
+    id("org.jetbrains.kotlin.jvm") version "1.3.71"
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.3.70'
+    id "maven-publish"
+    id 'java-gradle-plugin'
+    id "com.gradle.plugin-publish" version "0.11.0"
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url  "https://dl.bintray.com/febb/maven"
+    }
+    maven { url = "https://maven.fabricmc.net/" }
+    jcenter()
+    mavenLocal()
+}
+
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation gradleApi()
+    implementation("io.github.febb:abstractor:$abstractor_version")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0") // JVM dependency
+    implementation "net.fabricmc:fabric-loom:0.4.local"
+    implementation("org.ow2.asm:asm:8.0.1")
+    implementation("org.ow2.asm:asm-all:5.2")
+
+
+}
+
+gradlePlugin {
+    plugins {
+        febbGradle {
+            id = 'io.github.febb.febbgradle'
+            implementationClass = 'febb.FebbGradle'
+        }
+    }
+}
+
+pluginBundle {
+    website = 'https://github.com/IridisMC/FebbGradle'
+    vcsUrl = 'https://github.com/IridisMC/FebbGradle'
+    description = 'Allows building febb mods'
+    tags = ['fabric', 'forge','febb']
+
+    plugins {
+        febbGradle {
+            // id is captured from java-gradle-plugin configuration
+            displayName = 'FebbGradle'
+        }
+    }
+}
+
+group 'io.github.febb'
+version '0.1.0'
+archivesBaseName = "febbgradle"
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
