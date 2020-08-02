@@ -10,16 +10,15 @@ import metautils.asm.readToClassNode
 import metautils.asm.writeTo
 import metautils.util.*
 import net.fabricmc.loom.LoomGradleExtension
-import net.fabricmc.loom.api.processors.JarProcessor
-import net.fabricmc.loom.task.RemapJarTask
+import net.fabricmc.loom.processors.JarProcessor
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.language.jvm.tasks.ProcessResources
-import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.tree.ClassNode
+import java.io.File
 import java.nio.file.Path
 import kotlin.system.measureTimeMillis
 
@@ -89,7 +88,7 @@ private class InitProjectContext(override val project: Project) : ProjectContext
 
     private fun addJarProcessor(febb: FebbGradleExtension) {
         val loom = getExtension<LoomGradleExtension>()
-        loom.addProcessor(FebbJarProcessor(project, febb))
+        loom.addJarProcessor(FebbJarProcessor(project, febb))
     }
 
     private fun addSourceSets(): Unit = with(getSourceSets()) {
@@ -116,38 +115,34 @@ private class InitProjectContext(override val project: Project) : ProjectContext
 }
 
 private class AfterEvaluateContext(override val project: Project, private val febb: FebbGradleExtension) :
-    ProjectContext {
+        ProjectContext {
     fun afterEvaluate() {
         require(febb.dependenciesAdded) { "addDependencies(project) must be called at the end of the febb {} block!" }
     }
 }
 
 private class FebbJarProcessor(private val project: Project, private val febb: FebbGradleExtension) : JarProcessor {
+//        //TODO: remap array constructors to .array() calls
 
-    override fun processRemapped(project: Project, task: RemapJarTask, remapper: Remapper, jar: Path) {
-        //TODO: remap array constructors to .array() calls
-    }
-
-    override fun processInput(project: Project, from: Path, to: Path): Boolean {
+    override fun process(file: File) {
         println("Attaching f2bb interfaces")
 
         val devManifest = getDevManifest()
+        val jar = file.toPath()
 
         val time = measureTimeMillis {
-            from.processJar(to, {
+            jar.processJarInPlace(filter = {
                 devManifest.containsKey(it.toString().removeSurrounding("/", ".class"))
-            }) { classNode ->
+            }, processor = { classNode ->
                 val manifestValue = devManifest.getValue(classNode.name)
                 classNode.interfaces.add(manifestValue.apiClassName)
                 classNode.signature = manifestValue.newSignature
-            }
+            })
         }
 
-        to.addF2bbVersionMarker()
+        jar.addF2bbVersionMarker()
 
         println("Attached interfaces in $time millis")
-
-        return false
 
     }
 
@@ -174,37 +169,29 @@ private class FebbJarProcessor(private val project: Project, private val febb: F
     }
 
     private fun FebbGradleExtension.versionMarker() = "$minecraftVersion**$yarnBuild**$febbBuild"
-
-    override fun isUpToDate(project: Project, path: Path): Boolean = with(febb) {
-        path.getF2bbVersionMarkerPath {
-            if (!it.exists()) return false
-            return it.readToString() == versionMarker()
+    override fun isInvalid(file: File): Boolean = with(febb) {
+        file.toPath().getF2bbVersionMarkerPath {
+            if (!it.exists()) return true
+            return it.readToString() != versionMarker()
         }
+    }
+
+    override fun setup() {
+
     }
 
 }
 
-private fun Path.processJar(dest: Path, filter: (Path) -> Boolean, processor: (ClassNode) -> Unit) {
-    dest.deleteIfExists()
-    dest.createParentDirectories()
-    dest.createJar()
-    dest.openJar { destJar ->
-        val destRoot = destJar.getPath("/")
-        walkJar { classes ->
-            classes.forEach { classFile ->
-                val destPath = destRoot.resolve(classFile.toString())
-                if (!classFile.isDirectory()) {
-                    destPath.createParentDirectories()
-                    if (classFile.isClassfile() && filter(classFile)) {
-                        val node = readToClassNode(classFile)
-                        processor(node)
-                        node.writeTo(destPath)
-                    } else {
-                        classFile.copyTo(destPath)
-                    }
+private fun Path.processJarInPlace(filter: (Path) -> Boolean, processor: (ClassNode) -> Unit) {
+    walkJar { classes ->
+        classes.forEach { classFile ->
+            if (!classFile.isDirectory()) {
+                if (classFile.isClassfile() && filter(classFile)) {
+                    val node = readToClassNode(classFile)
+                    processor(node)
+                    node.writeTo(classFile)
                 }
             }
         }
     }
-
 }

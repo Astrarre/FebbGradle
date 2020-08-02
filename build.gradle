@@ -21,7 +21,7 @@ dependencies {
     implementation gradleApi()
     implementation("io.github.febb:abstractor:$abstractor_version")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0") // JVM dependency
-    implementation "net.fabricmc:fabric-loom:0.4.local"
+    implementation "net.fabricmc:fabric-loom:0.5.local"
     implementation("org.ow2.asm:asm:8.0.1")
     implementation("org.ow2.asm:asm-all:5.2")
 
@@ -52,7 +52,7 @@ pluginBundle {
 }
 
 group 'io.github.febb'
-version '0.1.0'
+version '0.2.1'
 archivesBaseName = "febbgradle"
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
