@@ -1,6 +1,6 @@
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.3.71"
-    id 'org.jetbrains.kotlin.plugin.serialization' version '1.3.70'
+    id("org.jetbrains.kotlin.jvm") version "1.4.0"
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.4.0'
     id "maven-publish"
     id 'java-gradle-plugin'
     id "com.gradle.plugin-publish" version "0.11.0"
@@ -19,13 +19,12 @@ repositories {
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation gradleApi()
-    implementation("io.github.febb:abstractor:$abstractor_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0") // JVM dependency
-    implementation "net.fabricmc:fabric-loom:0.5.local"
+//    implementation("io.github.febb:abstractor:$abstractor_version")
+    implementation("io.github.febb:metautils:0.2.1+build.+")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.0-RC") // JVM dependency
+    implementation "net.fabricmc:fabric-loom:0.5-SNAPSHOT"
     implementation("org.ow2.asm:asm:8.0.1")
     implementation("org.ow2.asm:asm-all:5.2")
-
-
 }
 
 gradlePlugin {
@@ -52,7 +51,7 @@ pluginBundle {
 }
 
 group 'io.github.febb'
-version '0.2.1'
+version '1.1.3'
 archivesBaseName = "febbgradle"
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
